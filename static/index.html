@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=5">
+</head>
+<body class="setup-page">
+
+  <!-- ── Scoring guide modal ──────────────────────────────────────────────── -->
+  <div id="guide-overlay" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeGuide()">
+    <div class="modal-card guide-card">
+      <button class="guide-close" onclick="closeGuide()" aria-label="Close">✕</button>
+      <h2 class="guide-title">How scoring works</h2>
+      <p class="guide-intro">This app uses <strong>Japanese rules</strong>. Your final score is the sum of four components:</p>
+      <dl class="guide-list">
+        <dt>Territory</dt>
+        <dd>Empty intersections completely surrounded by your stones. Flood-filled at the end of the game — any empty region touching only your colour counts as your territory.</dd>
+
+        <dt>Captures</dt>
+        <dd>Opponent stones removed from the board <em>during play</em> — whenever a group loses its last liberty and is taken off immediately.</dd>
+
+        <dt>Dead opponents</dt>
+        <dd>Opponent stones still on the board at game end that both players agree are dead (marked during the scoring phase by clicking them). Each counts as one point, same as a capture.</dd>
+
+        <dt>Komi <span class="guide-komi-note">(White only)</span></dt>
+        <dd>A fixed bonus added to White's score to compensate for Black's first-move advantage. 6.5 points is standard — the .5 prevents draws.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <main class="setup-screen">
+    <h1 class="setup-title">Go</h1>
+    <p class="setup-subtitle">Two player · Local · <button class="guide-link" onclick="openGuide()">Scoring guide</button></p>
+
+    <!-- Board size -->
+    <div class="size-buttons">
+      <button class="size-btn" data-size="9" onclick="selectSize(9)">
+        <span class="size-label">9 × 9</span>
+        <span class="size-desc">~20 min</span>
+      </button>
+      <button class="size-btn" data-size="13" onclick="selectSize(13)">
+        <span class="size-label">13 × 13</span>
+        <span class="size-desc">~40 min</span>
+      </button>
+      <button class="size-btn" data-size="19" onclick="selectSize(19)">
+        <span class="size-label">19 × 19</span>
+        <span class="size-desc">Full game</span>
+      </button>
+    </div>
+
+    <!-- Options -->
+    <div class="options-card">
+
+      <!-- Komi -->
+      <div class="option-row">
+        <div class="option-text">
+          <span class="option-heading">Komi</span>
+          <span class="option-detail">Bonus points for White</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="komi-toggle" checked onchange="toggleKomi(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="komi-detail" class="option-sub">
+        <label class="sub-label" for="komi-value">Points</label>
+        <input type="number" id="komi-value" class="sub-select" value="6.5" min="0" max="99" step="0.5" style="width:72px">
+        <span class="sub-label komi-standard-note">6.5 is standard</span>
+      </div>
+
+      <div class="option-divider"></div>
+
+      <!-- Handicap -->
+      <div class="option-row">
+        <div class="option-text">
+          <span class="option-heading">Handicap</span>
+          <span class="option-detail">Pre-placed stones for Black · White goes first</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="handicap-toggle" onchange="toggleHandicap(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="handicap-detail" class="option-sub" style="display:none">
+        <label class="sub-label" for="handicap-count">Stones</label>
+        <select id="handicap-count" class="sub-select"></select>
+      </div>
+
+      <div class="option-divider"></div>
+
+      <!-- Superko -->
+      <div class="option-row">
+        <div class="option-text">
+          <span class="option-heading">Superko</span>
+          <span class="option-detail">Forbid all repeated board positions</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="superko-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+    </div>
+
+    <button id="start-btn" class="start-btn btn-primary" onclick="startGame()" disabled>
+      Select a board size
+    </button>
+  </main>
+
+  <script>
+    let selectedSize = null;
+
+    function selectSize(size) {
+      selectedSize = size;
+      document.querySelectorAll('.size-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.size) === size);
+      });
+      const startBtn = document.getElementById('start-btn');
+      startBtn.disabled     = false;
+      startBtn.textContent  = 'Start Game';
+      updateHandicapOptions(size);
+    }
+
+    function updateHandicapOptions(size) {
+      const max    = size === 19 ? 9 : 5;
+      const select = document.getElementById('handicap-count');
+      select.innerHTML = '';
+      for (let i = 2; i <= max; i++) {
+        const opt    = document.createElement('option');
+        opt.value    = i;
+        opt.textContent = i + ' stones';
+        select.appendChild(opt);
+      }
+    }
+
+    function toggleKomi(checked) {
+      document.getElementById('komi-detail').style.display = checked ? 'flex' : 'none';
+    }
+
+    function toggleHandicap(checked) {
+      document.getElementById('handicap-detail').style.display = checked ? 'flex' : 'none';
+    }
+
+    function startGame() {
+      if (!selectedSize) return;
+      const komiEnabled = document.getElementById('komi-toggle').checked;
+      const komi        = komiEnabled ? (parseFloat(document.getElementById('komi-value').value) || 0) : 0;
+      const superko  = document.getElementById('superko-toggle').checked  ? 1   : 0;
+      const hEnabled = document.getElementById('handicap-toggle').checked;
+      const handicap = hEnabled ? parseInt(document.getElementById('handicap-count').value, 10) : 0;
+      window.location.href = `game.html?size=${selectedSize}&komi=${komi}&superko=${superko}&handicap=${handicap}`;
+    }
+
+    // Initialise handicap select for default (19x19).
+    updateHandicapOptions(19);
+
+    function openGuide()  { document.getElementById('guide-overlay').style.display = 'flex'; }
+    function closeGuide() { document.getElementById('guide-overlay').style.display = 'none'; }
+  </script>
+</body>
+</html>

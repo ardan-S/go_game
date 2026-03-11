@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=6">
+</head>
+<body class="game-page">
+
+  <!-- ── Result overlay (resign / score confirmed) ───────────── -->
+  <div id="result-overlay" class="result-overlay" style="display:none">
+    <div class="result-card">
+      <p id="result-message" class="result-message"></p>
+      <button id="result-new-game-btn" class="btn-primary">New Game</button>
+    </div>
+  </div>
+
+  <!-- ── Pass toast ───────────────────────────────────────────── -->
+  <div id="pass-toast" class="pass-toast"></div>
+
+  <!-- ── Confirm modal ────────────────────────────────────────── -->
+  <div id="modal-overlay" class="modal-overlay" style="display:none">
+    <div class="modal-card">
+      <p id="modal-message" class="modal-message"></p>
+      <div class="modal-actions">
+        <button id="modal-confirm" class="btn-primary">Confirm</button>
+        <button id="modal-cancel"  class="btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Info bar ──────────────────────────────────────────────── -->
+  <header class="info-bar">
+    <div class="turn-block">
+      <span id="stone-dot" class="stone-dot black"></span>
+      <span id="turn-indicator" class="turn-indicator">Black's turn</span>
+    </div>
+    <span id="ko-indicator" class="ko-indicator">Ko</span>
+    <div class="captures">
+      <span>● <strong id="captures-black">0</strong></span>
+      <span>○ <strong id="captures-white">0</strong></span>
+      <span class="move-count">Move <strong id="move-counter">0</strong></span>
+    </div>
+  </header>
+
+  <!-- ── Status flash ─────────────────────────────────────────── -->
+  <div id="status-msg" class="status-msg"></div>
+
+  <!-- ── Board + side score panels ───────────────────────────── -->
+  <div class="game-area">
+
+    <!-- Left: Black score (shown during scoring) -->
+    <aside id="score-panel-black" class="score-side-panel" style="display:none">
+      <div class="side-panel-title">
+        <span class="stone-dot black"></span> Black
+      </div>
+      <div class="side-score-list">
+        <div class="side-score-row">
+          <span class="side-score-label">Territory</span>
+          <span id="sp-black-territory" class="side-score-val">—</span>
+        </div>
+        <div class="side-score-row">
+          <span class="side-score-label">Captures</span>
+          <span id="sp-black-captures" class="side-score-val">—</span>
+        </div>
+        <div class="side-score-row">
+          <span class="side-score-label">Dead opp.</span>
+          <span id="sp-black-dead" class="side-score-val">—</span>
+        </div>
+      </div>
+      <div class="side-panel-total">Total: <strong id="sp-black-total">—</strong></div>
+    </aside>
+
+    <!-- Board -->
+    <div class="board-container">
+      <canvas id="board-canvas"></canvas>
+      <div id="board-result" class="board-result" style="display:none">
+        <div class="board-result-card">
+          <p id="board-result-message" class="result-message"></p>
+          <button id="board-result-new-game-btn" class="btn-primary">New Game</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: White score (shown during scoring) -->
+    <aside id="score-panel-white" class="score-side-panel" style="display:none">
+      <div class="side-panel-title">
+        <span class="stone-dot white"></span> White
+      </div>
+      <div class="side-score-list">
+        <div class="side-score-row">
+          <span class="side-score-label">Territory</span>
+          <span id="sp-white-territory" class="side-score-val">—</span>
+        </div>
+        <div class="side-score-row">
+          <span class="side-score-label">Captures</span>
+          <span id="sp-white-captures" class="side-score-val">—</span>
+        </div>
+        <div class="side-score-row">
+          <span class="side-score-label">Dead opp.</span>
+          <span id="sp-white-dead" class="side-score-val">—</span>
+        </div>
+        <div id="sp-white-komi-row" class="side-score-row" style="display:none">
+          <span class="side-score-label">Komi</span>
+          <span id="sp-white-komi" class="side-score-val">—</span>
+        </div>
+      </div>
+      <div class="side-panel-total">Total: <strong id="sp-white-total">—</strong></div>
+    </aside>
+
+  </div>
+
+  <!-- ── Playing controls ─────────────────────────────────────── -->
+  <div id="controls" class="controls">
+    <button id="pass-btn"     class="btn-ghost">Pass</button>
+    <button id="end-game-btn" class="btn-ghost">End Game</button>
+    <button id="undo-btn"     class="btn-ghost">Undo</button>
+    <button id="resign-btn"   class="btn-ghost btn-danger">Resign</button>
+  </div>
+
+  <!-- ── Scoring panel (instructions + buttons only) ──────────── -->
+  <section id="scoring-panel" class="scoring-panel" style="display:none">
+    <p id="scoring-instructions" class="scoring-instructions">
+      Click groups to mark dead stones. Confirm when both players agree.
+    </p>
+    <div class="scoring-actions">
+      <button id="confirm-score-btn"    class="btn-primary">Confirm Score</button>
+      <button id="new-game-scoring-btn" class="btn-ghost">New Game</button>
+    </div>
+  </section>
+
+  <script src="js/board.js?v=6"></script>
+  <script src="js/render.js?v=6"></script>
+  <script src="js/ui.js?v=6"></script>
+</body>
+</html>
