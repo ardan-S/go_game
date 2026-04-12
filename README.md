@@ -1,7 +1,9 @@
 # Go (the board game)
 
 A browser-based Go game with multiple play modes - Repo still in development.
+
 Code written with use of Claude Code and ChatGPT Codex.
+
 All contributions welcome!
 
 ## Play now
