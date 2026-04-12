@@ -4,7 +4,7 @@ class Board {
   /**
    * @param {number} size     Board size (9, 13, or 19).
    * @param {object} options
-   * @param {boolean} options.superko   Forbid all repeated board positions.
+   * @param {boolean} options.superko   AGA/BGA-style situational superko.
    * @param {number}  options.handicap  Number of pre-placed Black stones (0 = none).
    */
   constructor(size, options = {}) {
@@ -24,7 +24,7 @@ class Board {
 
     // Undo stack — each entry is a full snapshot of mutable state.
     this.history = [];
-    // Superko — serialized board states seen so far.
+    // Superko — serialized situations seen so far (full board + player to move).
     this.boardStateHistory = [];
 
     const handicap = Math.max(0, parseInt(options.handicap) || 0);
@@ -32,6 +32,8 @@ class Board {
       this._placeHandicapStones(handicap);
       this.currentPlayer = 'white'; // White moves first in handicap games.
     }
+
+    this.boardStateHistory.push(this._serializeSituation(this.grid, this.currentPlayer));
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -55,6 +57,10 @@ class Board {
 
   _serializeGrid(grid) {
     return (grid || this.grid).map(row => row.map(c => c ? c[0] : '.').join('')).join('|');
+  }
+
+  _serializeSituation(grid, nextPlayer) {
+    return `${nextPlayer}:${this._serializeGrid(grid)}`;
   }
 
   // ─── Group / Liberty Logic ───────────────────────────────────────────────────
@@ -89,6 +95,38 @@ class Board {
       }
     }
     return liberties;
+  }
+
+  _detectKoPoint(previousGrid, newGrid, nextPlayer, capturedStones) {
+    if (capturedStones.length !== 1) return null;
+
+    const [{ x, y, color }] = capturedStones;
+    const recaptureGrid = newGrid.map(row => [...row]);
+    recaptureGrid[y][x] = nextPlayer;
+
+    const opp = this.opponent(nextPlayer);
+    let recaptured = 0;
+    for (const [nx, ny] of this.neighbors(x, y)) {
+      if (recaptureGrid[ny][nx] !== opp) continue;
+      const group = this.getGroup(nx, ny, recaptureGrid);
+      if (this.getLiberties(group, recaptureGrid).size === 0) {
+        for (const k of group) {
+          const [gx, gy] = k.split(',').map(Number);
+          recaptureGrid[gy][gx] = null;
+          recaptured++;
+        }
+      }
+    }
+
+    const ownGroup = this.getGroup(x, y, recaptureGrid);
+    if (this.getLiberties(ownGroup, recaptureGrid).size === 0) return null;
+    if (recaptured !== 1) return null;
+
+    const previousState = this._serializeGrid(previousGrid);
+    const recaptureState = this._serializeGrid(recaptureGrid);
+    if (recaptureState !== previousState) return null;
+
+    return { x, y, color };
   }
 
   // ─── History / Undo ─────────────────────────────────────────────────────────
@@ -163,17 +201,14 @@ class Board {
 
     // Superko check.
     if (this.superko) {
-      const newState = this._serializeGrid(newGrid);
-      if (this.boardStateHistory.includes(newState)) {
-        return { ok: false, reason: 'Superko: this board position has occurred before' };
+      const newSituation = this._serializeSituation(newGrid, opp);
+      if (this.boardStateHistory.includes(newSituation)) {
+        return { ok: false, reason: 'Superko: cannot recreate a previous full-board position with the same player to move' };
       }
     }
 
     // Ko point for next turn.
-    let newKoPoint = null;
-    if (captured === 1 && ownGroup.size === 1) {
-      newKoPoint = capturedStones[0];
-    }
+    const newKoPoint = this._detectKoPoint(this.grid, newGrid, opp, capturedStones);
 
     // Commit.
     this._saveHistory();
@@ -184,7 +219,7 @@ class Board {
     this.lastMove         = { x, y };
     this.moveNumber++;
     this.currentPlayer    = opp;
-    this.boardStateHistory.push(this._serializeGrid());
+    this.boardStateHistory.push(this._serializeSituation(this.grid, this.currentPlayer));
 
     return { ok: true, captured: capturedStones };
   }
@@ -204,6 +239,7 @@ class Board {
     }
 
     this.currentPlayer = this.opponent(this.currentPlayer);
+    this.boardStateHistory.push(this._serializeSituation(this.grid, this.currentPlayer));
     return { ok: true, gameOver: false };
   }
 

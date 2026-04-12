@@ -46,7 +46,7 @@
         <dd>Connected stones of the same colour form a group. If a group loses all adjacent empty intersections, called liberties, it is captured and removed.</dd>
 
         <dt>Illegal moves</dt>
-        <dd>You cannot play on an occupied point, make a suicide move, or immediately retake a simple ko. Superko is optional from the home screen.</dd>
+        <dd>You cannot play on an occupied point, make a suicide move, or immediately retake a simple ko. Superko is optional from the home screen and uses AGA/BGA-style repetition: no previous full-board position with the same player to move may be recreated.</dd>
 
         <dt>Finish the game</dt>
         <dd>Two consecutive passes move the game into scoring, or you can use End Game to go there directly.</dd>
@@ -136,7 +136,7 @@
         <div class="option-row">
           <div class="option-text">
             <span class="option-heading">Superko</span>
-            <span class="option-detail">Forbid all repeated board positions</span>
+            <span class="option-detail">AGA/BGA style: no repeated full-board position with the same player to move</span>
           </div>
           <label class="toggle">
             <input type="checkbox" id="superko-toggle">
