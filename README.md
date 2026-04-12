@@ -1,6 +1,6 @@
 # Go (the board game)
 
-A 2-player Go game that runs in your browser — pass and play, no account needed.
+A browser-based Go game with multiple play modes.
 
 ## Play now
 

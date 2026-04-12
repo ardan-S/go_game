@@ -136,16 +136,27 @@ class Renderer {
   _drawBoard() {
     const { ctx, canvas } = this;
     const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    grad.addColorStop(0, '#d9b06e');
-    grad.addColorStop(1, '#c49456');
+    grad.addColorStop(0, '#d7b378');
+    grad.addColorStop(0.52, '#c99a5d');
+    grad.addColorStop(1, '#b78347');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Light grain bands keep the board feeling warm and tactile without
+    // overwhelming the stones or grid.
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    for (let i = -canvas.height; i < canvas.width; i += 34) {
+      ctx.fillStyle = i % 68 === 0 ? 'rgba(255, 244, 214, 0.6)' : 'rgba(109, 70, 24, 0.5)';
+      ctx.fillRect(i, 0, 12, canvas.height);
+    }
+    ctx.restore();
   }
 
   _drawGrid() {
     const { ctx, board } = this;
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-    ctx.lineWidth   = 0.8;
+    ctx.strokeStyle = 'rgba(58, 36, 17, 0.62)';
+    ctx.lineWidth   = 0.9;
 
     for (let i = 0; i < board.size; i++) {
       const { px: vx, py: vy0 } = this.toPixel(i, 0);
@@ -163,8 +174,8 @@ class Renderer {
     const cols     = 'ABCDEFGHJKLMNOPQRST'; // I is intentionally skipped
     const fontSize = Math.max(9, Math.min(13, this.cellSize * 0.38));
 
-    ctx.font         = `500 ${fontSize}px Inter, system-ui, sans-serif`;
-    ctx.fillStyle    = 'rgba(0, 0, 0, 0.42)';
+    ctx.font         = `600 ${fontSize}px "Source Sans 3", system-ui, sans-serif`;
+    ctx.fillStyle    = 'rgba(68, 44, 23, 0.42)';
     ctx.textBaseline = 'middle';
 
     for (let i = 0; i < board.size; i++) {
@@ -184,7 +195,7 @@ class Renderer {
   _drawStarPoints() {
     const { ctx } = this;
     const dotR = Math.max(2.5, this.cellSize * 0.09);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    ctx.fillStyle = 'rgba(58, 36, 17, 0.72)';
     for (const [sx, sy] of this._starPoints()) {
       const { px, py } = this.toPixel(sx, sy);
       ctx.beginPath();
@@ -205,16 +216,16 @@ class Renderer {
     for (const k of positions.black) {
       const [x, y] = k.split(',').map(Number);
       const { px, py } = this.toPixel(x, y);
-      ctx.fillStyle = '#111';
+      ctx.fillStyle = 'rgba(29, 22, 18, 0.92)';
       ctx.fillRect(px - s, py - s, s * 2, s * 2);
     }
 
     for (const k of positions.white) {
       const [x, y] = k.split(',').map(Number);
       const { px, py } = this.toPixel(x, y);
-      ctx.fillStyle   = '#f0f0f0';
+      ctx.fillStyle   = '#f5eee4';
       ctx.fillRect(px - s, py - s, s * 2, s * 2);
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.strokeStyle = 'rgba(77, 57, 39, 0.22)';
       ctx.lineWidth   = 0.5;
       ctx.strokeRect(px - s, py - s, s * 2, s * 2);
     }
@@ -259,11 +270,11 @@ class Renderer {
 
     const grad = ctx.createRadialGradient(px - r * 0.32, py - r * 0.36, r * 0.04, px, py, r);
     if (color === 'black') {
-      grad.addColorStop(0, '#606060');
-      grad.addColorStop(1, '#090909');
+      grad.addColorStop(0, '#635a56');
+      grad.addColorStop(1, '#120f0d');
     } else {
-      grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(1, '#c6c6c6');
+      grad.addColorStop(0, '#fffdf9');
+      grad.addColorStop(1, '#d0c1ae');
     }
 
     ctx.beginPath();
@@ -274,7 +285,7 @@ class Renderer {
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
     if (color === 'white') {
-      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+      ctx.strokeStyle = 'rgba(71, 50, 34, 0.18)';
       ctx.lineWidth   = 0.6;
       ctx.stroke();
     }
@@ -295,11 +306,11 @@ class Renderer {
 
     const grad = ctx.createRadialGradient(px - r * 0.32, py - r * 0.36, r * 0.04, px, py, r);
     if (color === 'black') {
-      grad.addColorStop(0, '#606060');
-      grad.addColorStop(1, '#090909');
+      grad.addColorStop(0, '#635a56');
+      grad.addColorStop(1, '#120f0d');
     } else {
-      grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(1, '#c6c6c6');
+      grad.addColorStop(0, '#fffdf9');
+      grad.addColorStop(1, '#d0c1ae');
     }
 
     ctx.beginPath();
@@ -310,7 +321,7 @@ class Renderer {
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
     if (color === 'white') {
-      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+      ctx.strokeStyle = 'rgba(71, 50, 34, 0.18)';
       ctx.lineWidth   = 0.6;
       ctx.stroke();
     }
@@ -336,7 +347,7 @@ class Renderer {
     if (!board.koPoint) return;
     const { px, py } = this.toPixel(board.koPoint.x, board.koPoint.y);
     const half = this.cellSize * 0.28;
-    ctx.strokeStyle = 'rgba(192,57,43,0.85)';
+    ctx.strokeStyle = 'rgba(156,56,44,0.9)';
     ctx.lineWidth   = 1.5;
     ctx.strokeRect(px - half, py - half, half * 2, half * 2);
   }
@@ -350,8 +361,8 @@ class Renderer {
     this.ctx.globalAlpha = 0.3;
     this.ctx.beginPath();
     this.ctx.arc(px, py, r, 0, Math.PI * 2);
-    this.ctx.fillStyle   = color === 'black' ? '#090909' : '#f0f0f0';
-    this.ctx.strokeStyle = color === 'black' ? 'transparent' : 'rgba(0,0,0,0.2)';
+    this.ctx.fillStyle   = color === 'black' ? '#15110f' : '#f5eee4';
+    this.ctx.strokeStyle = color === 'black' ? 'transparent' : 'rgba(71,50,34,0.18)';
     this.ctx.lineWidth   = 0.6;
     this.ctx.fill();
     this.ctx.stroke();
