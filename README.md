@@ -1,6 +1,8 @@
 # Go (the board game)
 
-A browser-based Go game with multiple play modes.
+A browser-based Go game with multiple play modes - Repo still in development.
+Code written with use of Claude Code and ChatGPT Codex.
+All contributions welcome!
 
 ## Play now
 
@@ -30,17 +32,4 @@ Score = territory + captures + dead opponent stones + komi (White only)
 ```bash
 ./start.sh
 ```
-
 Then open the URL printed in the terminal. The script will use Go if installed, or fall back to Python 3.
-
-## Development
-
-All game logic lives in the browser — the Go server is a thin static file server with no game-specific routes.
-
-| File | Responsibility |
-|---|---|
-| `static/js/board.js` | All game state and rules |
-| `static/js/render.js` | Canvas rendering |
-| `static/js/ui.js` | DOM events and UI wiring |
-
-The site is deployed automatically to GitHub Pages on every push to `main`.
