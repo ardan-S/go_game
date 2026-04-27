@@ -7,15 +7,25 @@ let hoverPos    = null;
 let statusTimer = null;
 let toastTimer  = null;
 
+// Bot state
+let isBotMode     = false;
+let botColor      = 'white';
+let botDifficulty = 'medium';
+let isBotThinking = false;
+let bot           = null;
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
 function getParams() {
   const p = new URLSearchParams(window.location.search);
   return {
-    size:     parseInt(p.get('size'), 10) || 19,
-    komi:     parseFloat(p.get('komi'))   || 0,
-    superko:  p.get('superko') === '1',
-    handicap: parseInt(p.get('handicap'), 10) || 0,
+    size:       parseInt(p.get('size'), 10) || 19,
+    komi:       parseFloat(p.get('komi'))   || 0,
+    superko:    p.get('superko') === '1',
+    handicap:   parseInt(p.get('handicap'), 10) || 0,
+    bot:        p.get('bot') === '1',
+    difficulty: p.get('difficulty') || 'medium',
+    color:      p.get('color') || 'random',
   };
 }
 
@@ -23,6 +33,16 @@ function init() {
   const params = getParams();
   komi  = params.komi;
   board = new Board(params.size, { superko: params.superko, handicap: params.handicap });
+
+  isBotMode     = params.bot;
+  botDifficulty = params.difficulty;
+  if (isBotMode) {
+    const colorParam = params.color;
+    botColor = colorParam === 'random'
+      ? (Math.random() < 0.5 ? 'white' : 'black')
+      : (colorParam === 'black' ? 'white' : 'black');
+    bot = new Bot();
+  }
 
   const canvas     = document.getElementById('board-canvas');
   const canvasSize = calcCanvasSize(params.size);
@@ -34,6 +54,11 @@ function init() {
 
   updateInfoBar();
   bindEvents(canvas);
+
+  // If bot plays first (e.g. player chose White, bot is Black), trigger immediately
+  if (isBotMode && board.currentPlayer === botColor && board.phase === 'playing') {
+    setTimeout(triggerBotMove, 80);
+  }
 }
 
 function calcCanvasSize(boardSize) {
@@ -73,6 +98,10 @@ function onCanvasClick(e) {
   const { x, y } = pixelToGrid(e);
 
   if (board.phase === 'playing') {
+    // Ignore clicks while the bot is computing or when it's the bot's turn
+    if (isBotThinking) return;
+    if (isBotMode && board.currentPlayer === botColor) return;
+
     const color  = board.currentPlayer;
     const result = board.placeStone(x, y);
 
@@ -87,6 +116,11 @@ function onCanvasClick(e) {
 
     updateInfoBar();
 
+    // Hand off to bot if it's now the bot's turn
+    if (isBotMode && board.currentPlayer === botColor && board.phase === 'playing') {
+      triggerBotMove();
+    }
+
   } else if (board.phase === 'scoring') {
     if (board.inBounds(x, y) && board.grid[y][x]) {
       board.toggleDeadGroup(x, y);
@@ -98,6 +132,7 @@ function onCanvasClick(e) {
 
 function onCanvasHover(e) {
   if (board.phase !== 'playing') return;
+  if (isBotThinking || (isBotMode && board.currentPlayer === botColor)) return;
   const { x, y } = pixelToGrid(e);
   if (hoverPos && hoverPos.x === x && hoverPos.y === y) return;
   hoverPos = { x, y };
@@ -120,6 +155,9 @@ function pixelToGrid(e) {
 // ─── Controls ─────────────────────────────────────────────────────────────────
 
 function onPass() {
+  if (isBotThinking) return;
+  if (isBotMode && board.currentPlayer === botColor) return;
+
   const playerLabel = capitalise(board.currentPlayer);
   const result      = board.pass();
   if (!result.ok) { showStatus(result.reason); return; }
@@ -129,10 +167,15 @@ function onPass() {
   } else {
     renderer.draw();
     updateInfoBar();
+    // Trigger bot after human pass
+    if (isBotMode && board.currentPlayer === botColor && board.phase === 'playing') {
+      triggerBotMove();
+    }
   }
 }
 
 function onEndGame() {
+  if (isBotThinking) return;
   showConfirm('End the game now and proceed to scoring?', () => {
     board.endGame();
     enterScoringPhase();
@@ -140,16 +183,30 @@ function onEndGame() {
 }
 
 function onUndo() {
-  const result = board.undo();
-  if (!result.ok) {
-    showStatus(result.reason);
+  if (isBotThinking) return;
+  if (isBotMode) {
+    // Undo both the bot's last move and the human's last move together
+    const first = board.undo();
+    if (!first.ok) { showStatus(first.reason); return; }
+    // Try second undo; if only one move existed that's fine
+    board.undo();
+    renderer.draw();
+    updateInfoBar();
+    // If it's now the bot's turn (e.g. bot plays Black), trigger it again
+    if (board.phase === 'playing' && board.currentPlayer === botColor) {
+      triggerBotMove();
+    }
     return;
+  } else {
+    const result = board.undo();
+    if (!result.ok) { showStatus(result.reason); return; }
   }
   renderer.draw();
   updateInfoBar();
 }
 
 function onResign() {
+  if (isBotThinking) return;
   const opponent = board.currentPlayer === 'black' ? 'White' : 'Black';
   showConfirm(`Resign? ${opponent} wins the game.`, () => {
     const loser = board.currentPlayer;
@@ -160,7 +217,88 @@ function onResign() {
 }
 
 function goHome() {
+  if (bot) bot.terminate();
   window.location.href = 'index.html';
+}
+
+// ─── Bot ──────────────────────────────────────────────────────────────────────
+
+function startBotTimer(durationMs) {
+  const arc = document.getElementById('bot-timer-arc');
+  arc.classList.remove('running');
+  window.getComputedStyle(arc).animationName; // force reflow to restart animation
+  arc.style.animationDuration = durationMs + 'ms';
+  arc.classList.add('running');
+  document.getElementById('bot-timer').style.display = 'flex';
+}
+
+function stopBotTimer() {
+  const arc = document.getElementById('bot-timer-arc');
+  arc.classList.remove('running');
+  document.getElementById('bot-timer').style.display = 'none';
+}
+
+function triggerBotMove() {
+  isBotThinking = true;
+  const canvas  = document.getElementById('board-canvas');
+
+  canvas.style.pointerEvents = 'none';
+  document.getElementById('controls').style.display      = 'none';
+  document.getElementById('bot-thinking').style.display  = 'flex';
+  document.getElementById('bot-thinking-text').textContent =
+    `${capitalise(botColor)} is thinking\u2026`;
+
+  const level    = parseInt(botDifficulty) || 3;
+  const budgetMs = [0, 300, 600, 1500, 4000, 8000][level] || 1500;
+  startBotTimer(budgetMs);
+
+  const boardState = {
+    grid:          board.grid,
+    size:          board.size,
+    currentPlayer: board.currentPlayer,
+    koPoint:       board.koPoint,
+  };
+
+  bot.requestMove(boardState, botDifficulty, (result) => {
+    isBotThinking = false;
+    stopBotTimer();
+    canvas.style.pointerEvents = '';
+    document.getElementById('bot-thinking').style.display = 'none';
+    document.getElementById('controls').style.display     = 'flex';
+
+    // Game may have ended while the worker was computing (e.g. user resigned)
+    if (board.phase !== 'playing') return;
+
+    if (result.pass) {
+      applyBotPass();
+      return;
+    }
+
+    const color     = board.currentPlayer;
+    const moveResult = board.placeStone(result.x, result.y);
+
+    if (!moveResult.ok) {
+      // Bot returned an illegal move — fall back to pass
+      console.warn('Bot returned illegal move, falling back to pass:', result, moveResult.reason);
+      applyBotPass();
+      return;
+    }
+
+    if (moveResult.captured.length > 0) renderer.startCaptureAnimation(moveResult.captured);
+    renderer.startPlaceAnimation(result.x, result.y, color);
+    updateInfoBar();
+  });
+}
+
+function applyBotPass() {
+  const result = board.pass();
+  showToast(`${capitalise(botColor)} passed`);
+  if (result.gameOver) {
+    enterScoringPhase();
+  } else {
+    renderer.draw();
+    updateInfoBar();
+  }
 }
 
 // ─── Resign Result ────────────────────────────────────────────────────────────

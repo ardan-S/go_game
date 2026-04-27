@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: go-game
+    runtime: go
+    buildCommand: go build -o server main.go
+    startCommand: ./server
+    envVars:
+      - key: PORT
+        value: 8080

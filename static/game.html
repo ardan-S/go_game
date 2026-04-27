@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body class="game-page">
 
@@ -39,6 +39,13 @@
     <div class="turn-block">
       <span id="stone-dot" class="stone-dot black"></span>
       <span id="turn-indicator" class="turn-indicator">Black's turn</span>
+    </div>
+    <!-- Countdown ring — shown only while bot is computing -->
+    <div id="bot-timer" class="bot-timer" style="display:none">
+      <svg class="bot-timer-svg" viewBox="0 0 36 36">
+        <circle class="bot-timer-track" cx="18" cy="18" r="14"/>
+        <circle id="bot-timer-arc"  class="bot-timer-arc"  cx="18" cy="18" r="14"/>
+      </svg>
     </div>
     <span id="ko-indicator" class="ko-indicator">Ko</span>
     <div class="captures">
@@ -123,6 +130,12 @@
     <button id="resign-btn"   class="btn-ghost btn-danger">Resign</button>
   </div>
 
+  <!-- ── Bot thinking indicator (replaces controls while bot computes) ── -->
+  <div id="bot-thinking" class="bot-thinking" style="display:none">
+    <span class="bot-thinking-dot"></span>
+    <span id="bot-thinking-text" class="bot-thinking-text">White is thinking…</span>
+  </div>
+
   <!-- ── Scoring panel (instructions + buttons only) ──────────── -->
   <section id="scoring-panel" class="scoring-panel" style="display:none">
     <p id="scoring-instructions" class="scoring-instructions">
@@ -136,6 +149,7 @@
 
   <script src="js/board.js?v=7"></script>
   <script src="js/render.js?v=7"></script>
-  <script src="js/ui.js?v=7"></script>
+  <script src="js/bot.js?v=1"></script>
+  <script src="js/ui.js?v=8"></script>
 </body>
 </html>
