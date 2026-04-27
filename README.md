@@ -8,7 +8,7 @@ All contributions welcome!
 
 ## Play now
 
-**[ardan-S.github.io/go_game](https://ardan-S.github.io/go_game)**
+**[www.imperial-go.org](https://www.imperial-go.org)**
 
 ## How to play
 
