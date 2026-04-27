@@ -12,9 +12,9 @@
 <body class="setup-page">
 
   <!-- ── Scoring guide modal ──────────────────────────────────────────────── -->
-  <div id="guide-overlay" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeGuide()">
+  <div id="guide-overlay" class="modal-overlay" style="display:none">
     <div class="modal-card guide-card">
-      <button class="guide-close" onclick="closeGuide()" aria-label="Close">✕</button>
+      <button id="close-guide-btn" class="guide-close" aria-label="Close">✕</button>
       <h2 class="guide-title">How scoring works</h2>
       <p class="guide-intro">This app uses <strong>Japanese rules</strong>. Your final score is the sum of four components:</p>
       <dl class="guide-list">
@@ -33,9 +33,9 @@
     </div>
   </div>
 
-  <div id="rules-overlay" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeRules()">
+  <div id="rules-overlay" class="modal-overlay" style="display:none">
     <div class="modal-card guide-card">
-      <button class="guide-close" onclick="closeRules()" aria-label="Close">✕</button>
+      <button id="close-rules-btn" class="guide-close" aria-label="Close">✕</button>
       <h2 class="guide-title">Brief rules overview</h2>
       <p class="guide-intro">Go is a game where Black moves first and players alternate placing stones on the intersections of the board.</p>
       <dl class="guide-list">
@@ -59,16 +59,16 @@
     <h1 class="setup-title">Imperial Go</h1>
     <p class="setup-subtitle">Play Go on a board styled like a scholar&rsquo;s table.</p>
     <div class="setup-links">
-      <button class="guide-link" onclick="openGuide()">Scoring guide</button>
-      <button class="guide-link" onclick="openRules()">Rules overview</button>
+      <button id="open-guide-btn" class="guide-link">Scoring guide</button>
+      <button id="open-rules-btn" class="guide-link">Rules overview</button>
     </div>
 
     <section class="setup-mode-frame">
       <div class="mode-buttons" role="tablist" aria-label="Game modes">
-        <button class="mode-btn active" data-mode="local" onclick="selectMode('local')">Local Game</button>
-        <button class="mode-btn mode-btn--soon" data-mode="online" onclick="selectMode('online')">Play Online</button>
-        <button class="mode-btn mode-btn--soon" data-mode="friend" onclick="selectMode('friend')">Play a Friend</button>
-        <button class="mode-btn" data-mode="bot" onclick="selectMode('bot')">Play a Bot</button>
+        <button class="mode-btn active" data-mode="local">Local Game</button>
+        <button class="mode-btn mode-btn--soon" data-mode="online">Play Online</button>
+        <button class="mode-btn mode-btn--soon" data-mode="friend">Play a Friend</button>
+        <button class="mode-btn" data-mode="bot">Play a Bot</button>
       </div>
     </section>
 
@@ -83,15 +83,15 @@
 
       <div id="setup-config">
       <div class="size-buttons">
-        <button class="size-btn" data-size="9" onclick="selectSize(9)">
+        <button class="size-btn" data-size="9">
           <span class="size-label">9 × 9</span>
           <span class="size-desc">Quick match</span>
         </button>
-        <button class="size-btn" data-size="13" onclick="selectSize(13)">
+        <button class="size-btn" data-size="13">
           <span class="size-label">13 × 13</span>
           <span class="size-desc">Balanced play</span>
         </button>
-        <button class="size-btn" data-size="19" onclick="selectSize(19)">
+        <button class="size-btn" data-size="19">
           <span class="size-label">19 × 19</span>
           <span class="size-desc">Full board</span>
         </button>
@@ -105,8 +105,7 @@
               <span></span><span></span><span></span><span></span><span></span>
             </div>
             <input type="range" id="difficulty-slider" class="diff-slider"
-                   min="1" max="5" step="1" value="3"
-                   oninput="onDifficultySlider(this.value)">
+                   min="1" max="5" step="1" value="3">
           </div>
           <div class="diff-labels">
             <span>Easy</span><span></span><span>Medium</span><span></span><span>Hard</span>
@@ -125,9 +124,9 @@
             <span class="option-detail">Which stones you play</span>
           </div>
           <div class="seg-control">
-            <button class="seg-btn" data-color="black" onclick="selectColor('black')">Black</button>
-            <button class="seg-btn active" data-color="random" onclick="selectColor('random')">Random</button>
-            <button class="seg-btn" data-color="white" onclick="selectColor('white')">White</button>
+            <button class="seg-btn" data-color="black">Black</button>
+            <button class="seg-btn active" data-color="random">Random</button>
+            <button class="seg-btn" data-color="white">White</button>
           </div>
         </div>
         <div id="color-option-divider" class="option-divider" style="display:none"></div>
@@ -138,7 +137,7 @@
             <span class="option-detail">Bonus points for White</span>
           </div>
           <label class="toggle">
-            <input type="checkbox" id="komi-toggle" checked onchange="toggleKomi(this.checked)">
+            <input type="checkbox" id="komi-toggle" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -156,7 +155,7 @@
             <span class="option-detail">Pre-placed stones for Black · White moves first</span>
           </div>
           <label class="toggle">
-            <input type="checkbox" id="handicap-toggle" onchange="toggleHandicap(this.checked)">
+            <input type="checkbox" id="handicap-toggle">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -179,166 +178,13 @@
         </div>
       </div>
 
-      <button id="start-btn" class="start-btn btn-primary" onclick="startGame()" disabled>
+      <button id="start-btn" class="start-btn btn-primary" disabled>
         Select a board size
       </button>
       </div>
     </section>
   </main>
 
-  <script>
-    let selectedSize       = null;
-    let selectedMode       = 'local';
-    let selectedDifficulty = 3;
-    let selectedColor      = 'random';
-
-    function selectSize(size) {
-      selectedSize = size;
-      document.querySelectorAll('[data-size]').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.size) === size);
-      });
-      updateHandicapOptions(size);
-      updateStartButton();
-    }
-
-    function updateHandicapOptions(size) {
-      const max    = size === 19 ? 9 : 5;
-      const select = document.getElementById('handicap-count');
-      select.innerHTML = '';
-      for (let i = 2; i <= max; i++) {
-        const opt    = document.createElement('option');
-        opt.value    = i;
-        opt.textContent = i + ' stones';
-        select.appendChild(opt);
-      }
-    }
-
-    function toggleKomi(checked) {
-      document.getElementById('komi-detail').style.display = checked ? 'flex' : 'none';
-    }
-
-    function toggleHandicap(checked) {
-      document.getElementById('handicap-detail').style.display = checked ? 'flex' : 'none';
-    }
-
-    function selectColor(color) {
-      selectedColor = color;
-      document.querySelectorAll('[data-color]').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.color === color);
-      });
-    }
-
-    function onDifficultySlider(val) {
-      selectedDifficulty = parseInt(val, 10);
-      document.getElementById('diff-think-note').style.display =
-        selectedDifficulty >= 4 ? 'block' : 'none';
-      updateStartButton();
-    }
-
-    function selectMode(mode) {
-      selectedMode = mode;
-      document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === mode);
-      });
-      updateModeView();
-    }
-
-    function updateModeView() {
-      const setupConfig    = document.getElementById('setup-config');
-      const modeMessage    = document.getElementById('mode-message');
-      const descText       = document.getElementById('mode-description-text');
-      const msgText        = document.getElementById('mode-message-text');
-      const colorOptionRow      = document.getElementById('color-option-row');
-      const colorOptionDivider  = document.getElementById('color-option-divider');
-      const diffRow             = document.getElementById('difficulty-row');
-      const handicapDetail      = document.getElementById('handicap-detail');
-      const handicapToggle      = document.getElementById('handicap-toggle');
-      const handicapRow         = handicapToggle.closest('.option-row');
-
-      // Reset bot-only elements
-      colorOptionRow.style.display     = 'none';
-      colorOptionDivider.style.display = 'none';
-      diffRow.style.display            = 'none';
-      handicapRow.style.display        = '';
-
-      if (selectedMode === 'local') {
-        setupConfig.style.display = 'block';
-        modeMessage.style.display = 'none';
-        descText.textContent = 'Two players use the same machine and alternate turns on a shared board.';
-      } else if (selectedMode === 'bot') {
-        setupConfig.style.display        = 'block';
-        modeMessage.style.display        = 'none';
-        colorOptionRow.style.display     = '';
-        colorOptionDivider.style.display = '';
-        diffRow.style.display            = 'block';
-        document.getElementById('diff-think-note').style.display =
-          selectedDifficulty >= 4 ? 'block' : 'none';
-        // Hide handicap — bot always plays standard game
-        handicapRow.style.display    = 'none';
-        handicapDetail.style.display = 'none';
-        handicapToggle.checked       = false;
-        descText.textContent = 'Play against the computer — choose your colour and difficulty.';
-      } else if (selectedMode === 'friend') {
-        setupConfig.style.display = 'block';
-        modeMessage.style.display = 'none';
-        descText.textContent = 'Create a link to send to someone so you can play across two devices.';
-      } else if (selectedMode === 'online') {
-        setupConfig.style.display = 'none';
-        modeMessage.style.display = 'block';
-        descText.textContent = 'Play against a stranger online.';
-        msgText.textContent  = 'Sorry, not implemented yet.';
-      } else {
-        setupConfig.style.display = 'none';
-        modeMessage.style.display = 'block';
-        descText.textContent = 'Play against an engine.';
-        msgText.textContent  = 'Sorry, not implemented yet.';
-      }
-
-      updateStartButton();
-    }
-
-    function updateStartButton() {
-      const startBtn = document.getElementById('start-btn');
-
-      if (selectedMode === 'local') {
-        startBtn.disabled    = !selectedSize;
-        startBtn.textContent = selectedSize ? 'Start Game' : 'Select a board size';
-      } else if (selectedMode === 'bot') {
-        startBtn.disabled    = !selectedSize;
-        startBtn.textContent = selectedSize ? 'Start Game' : 'Select a board size';
-      } else if (selectedMode === 'friend') {
-        startBtn.disabled    = true;
-        startBtn.textContent = 'Not implemented yet';
-      } else {
-        startBtn.disabled    = true;
-        startBtn.textContent = 'Start Game';
-      }
-    }
-
-    function startGame() {
-      const komiEnabled = document.getElementById('komi-toggle').checked;
-      const komi        = komiEnabled ? (parseFloat(document.getElementById('komi-value').value) || 0) : 0;
-      const superko     = document.getElementById('superko-toggle').checked ? 1 : 0;
-
-      if (selectedMode === 'local') {
-        if (!selectedSize) return;
-        const hEnabled = document.getElementById('handicap-toggle').checked;
-        const handicap = hEnabled ? parseInt(document.getElementById('handicap-count').value, 10) : 0;
-        window.location.href = `game.html?size=${selectedSize}&komi=${komi}&superko=${superko}&handicap=${handicap}`;
-      } else if (selectedMode === 'bot') {
-        if (!selectedSize) return;
-        window.location.href = `game.html?size=${selectedSize}&komi=${komi}&superko=${superko}&handicap=0&bot=1&difficulty=${selectedDifficulty}&color=${selectedColor}`;
-      }
-    }
-
-    // Initialise handicap select for default (19x19).
-    updateHandicapOptions(19);
-    updateModeView();
-
-    function openGuide()  { document.getElementById('guide-overlay').style.display = 'flex'; }
-    function closeGuide() { document.getElementById('guide-overlay').style.display = 'none'; }
-    function openRules()  { document.getElementById('rules-overlay').style.display = 'flex'; }
-    function closeRules() { document.getElementById('rules-overlay').style.display = 'none'; }
-  </script>
+  <script defer src="js/setup.js"></script>
 </body>
 </html>

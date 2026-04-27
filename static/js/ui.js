@@ -18,14 +18,19 @@ let bot           = null;
 
 function getParams() {
   const p = new URLSearchParams(window.location.search);
+  const rawSize = parseInt(p.get('size'), 10);
+  const rawKomi = parseFloat(p.get('komi'));
+  const rawHandicap = parseInt(p.get('handicap'), 10);
+  const rawDifficulty = parseInt(p.get('difficulty'), 10);
+  const rawColor = p.get('color');
   return {
-    size:       parseInt(p.get('size'), 10) || 19,
-    komi:       parseFloat(p.get('komi'))   || 0,
+    size:       [9, 13, 19].includes(rawSize) ? rawSize : 19,
+    komi:       (!isNaN(rawKomi) && rawKomi >= 0 && rawKomi <= 99) ? rawKomi : 0,
     superko:    p.get('superko') === '1',
-    handicap:   parseInt(p.get('handicap'), 10) || 0,
+    handicap:   (!isNaN(rawHandicap) && rawHandicap >= 0) ? rawHandicap : 0,
     bot:        p.get('bot') === '1',
-    difficulty: p.get('difficulty') || 'medium',
-    color:      p.get('color') || 'random',
+    difficulty: Math.min(5, Math.max(1, !isNaN(rawDifficulty) ? rawDifficulty : 3)),
+    color:      ['black', 'white', 'random'].includes(rawColor) ? rawColor : 'random',
   };
 }
 
@@ -248,7 +253,7 @@ function triggerBotMove() {
   document.getElementById('bot-thinking-text').textContent =
     `${capitalise(botColor)} is thinking\u2026`;
 
-  const level    = parseInt(botDifficulty) || 3;
+  const level    = Math.min(5, Math.max(1, parseInt(botDifficulty) || 3));
   const budgetMs = [0, 300, 600, 1500, 4000, 8000][level] || 1500;
   startBotTimer(budgetMs);
 

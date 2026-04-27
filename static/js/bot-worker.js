@@ -406,7 +406,7 @@ self.onmessage = function (e) {
   const koIdx        = msg.koPoint ? msg.koPoint.y * size + msg.koPoint.x : -1;
   const currentColor = msg.currentPlayer === 'black' ? BLACK : WHITE;
 
-  const level        = parseInt(msg.difficulty) || 3;
+  const level        = Math.min(5, Math.max(1, parseInt(msg.difficulty) || 3));
   const timeBudgets  = [0, 300, 600, 1500, 4000, 8000];
   const timeBudget   = timeBudgets[level] || 1500;
   const useHeuristic = level >= 2;
