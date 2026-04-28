@@ -1296,3 +1296,94 @@ button:active {
     padding-right: 22px;
   }
 }
+
+/* ─── Friend lobby ──────────────────────────────────────────────────────────── */
+
+.friend-share-label {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.friend-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.friend-link-input {
+  flex: 1;
+  font-size: 0.78rem;
+  padding: 7px 10px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  min-width: 0;
+}
+
+.friend-wait-status {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+/* ─── Multiplayer in-game elements ──────────────────────────────────────────── */
+
+.mp-disconnect-banner {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 200;
+}
+
+.mp-disconnect-msg {
+  font-size: 1.05rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+.scoring-mp-status {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+/* ─── Takeback banner ───────────────────────────────────────────────────────── */
+
+.takeback-banner {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--c-card, #fff);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 100;
+  white-space: nowrap;
+}
+
+.takeback-msg {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.takeback-actions {
+  display: flex;
+  gap: 8px;
+}

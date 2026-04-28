@@ -14,6 +14,14 @@ let botDifficulty = 'medium';
 let isBotThinking = false;
 let bot           = null;
 
+// Multiplayer state
+let isMpMode            = false;
+let myColor             = null;
+let mp                  = null;
+let mpMyConfirmed       = false;
+let mpOpponentConfirmed = false;
+let mpTakebackPending   = false; // true while waiting for opponent's response
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
 function getParams() {
@@ -31,6 +39,8 @@ function getParams() {
     bot:        p.get('bot') === '1',
     difficulty: Math.min(5, Math.max(1, !isNaN(rawDifficulty) ? rawDifficulty : 3)),
     color:      ['black', 'white', 'random'].includes(rawColor) ? rawColor : 'random',
+    mp:         p.get('mp') === '1',
+    room:       p.get('room') || null,
   };
 }
 
@@ -49,6 +59,13 @@ function init() {
     bot = new Bot();
   }
 
+  isMpMode = params.mp && !!params.room && ['black', 'white'].includes(params.color);
+  if (isMpMode) {
+    myColor = params.color;
+    mp = new Multiplayer(params.room, myColor, onMpMessage, onMpDisconnect);
+    document.getElementById('undo-btn').textContent = 'Takeback';
+  }
+
   const canvas     = document.getElementById('board-canvas');
   const canvasSize = calcCanvasSize(params.size);
   canvas.width  = canvasSize;
@@ -59,6 +76,9 @@ function init() {
 
   updateInfoBar();
   bindEvents(canvas);
+
+  const mode = isMpMode ? 'friend' : isBotMode ? 'bot' : 'local';
+  gtag('event', 'game_start', { board_size: params.size, mode, komi });
 
   // If bot plays first (e.g. player chose White, bot is Black), trigger immediately
   if (isBotMode && board.currentPlayer === botColor && board.phase === 'playing') {
@@ -88,6 +108,8 @@ function bindEvents(canvas) {
   document.getElementById('confirm-score-btn').addEventListener('click',    onConfirmScore);
   document.getElementById('new-game-scoring-btn').addEventListener('click', goHome);
   document.getElementById('board-result-new-game-btn').addEventListener('click', goHome);
+  document.getElementById('takeback-accept-btn').addEventListener('click',  onTakebackAccept);
+  document.getElementById('takeback-reject-btn').addEventListener('click',  onTakebackReject);
 
   // Modal buttons
   document.getElementById('modal-confirm').addEventListener('click', onModalConfirm);
@@ -99,13 +121,18 @@ function bindEvents(canvas) {
 
 // ─── Canvas ───────────────────────────────────────────────────────────────────
 
+function isMyTurn() {
+  return !isMpMode || board.currentPlayer === myColor;
+}
+
 function onCanvasClick(e) {
   const { x, y } = pixelToGrid(e);
 
   if (board.phase === 'playing') {
-    // Ignore clicks while the bot is computing or when it's the bot's turn
+    // Ignore clicks while the bot is computing or when it's the bot's/opponent's turn
     if (isBotThinking) return;
     if (isBotMode && board.currentPlayer === botColor) return;
+    if (isMpMode && !isMyTurn()) return;
 
     const color  = board.currentPlayer;
     const result = board.placeStone(x, y);
@@ -121,8 +148,10 @@ function onCanvasClick(e) {
 
     updateInfoBar();
 
-    // Hand off to bot if it's now the bot's turn
-    if (isBotMode && board.currentPlayer === botColor && board.phase === 'playing') {
+    if (isMpMode) {
+      mp.send({ type: 'move', x, y });
+    } else if (isBotMode && board.currentPlayer === botColor && board.phase === 'playing') {
+      // Hand off to bot if it's now the bot's turn
       triggerBotMove();
     }
 
@@ -131,6 +160,7 @@ function onCanvasClick(e) {
       board.toggleDeadGroup(x, y);
       renderer.draw();
       updateScorePreview();
+      if (isMpMode) mp.send({ type: 'dead_toggle', x, y });
     }
   }
 }
@@ -138,6 +168,7 @@ function onCanvasClick(e) {
 function onCanvasHover(e) {
   if (board.phase !== 'playing') return;
   if (isBotThinking || (isBotMode && board.currentPlayer === botColor)) return;
+  if (isMpMode && !isMyTurn()) return;
   const { x, y } = pixelToGrid(e);
   if (hoverPos && hoverPos.x === x && hoverPos.y === y) return;
   hoverPos = { x, y };
@@ -162,18 +193,19 @@ function pixelToGrid(e) {
 function onPass() {
   if (isBotThinking) return;
   if (isBotMode && board.currentPlayer === botColor) return;
+  if (isMpMode && !isMyTurn()) return;
 
   const playerLabel = capitalise(board.currentPlayer);
   const result      = board.pass();
   if (!result.ok) { showStatus(result.reason); return; }
   showToast(`${playerLabel} passed`);
+  if (isMpMode) mp.send({ type: 'pass' });
   if (result.gameOver) {
     enterScoringPhase();
   } else {
     renderer.draw();
     updateInfoBar();
-    // Trigger bot after human pass
-    if (isBotMode && board.currentPlayer === botColor && board.phase === 'playing') {
+    if (!isMpMode && isBotMode && board.currentPlayer === botColor && board.phase === 'playing') {
       triggerBotMove();
     }
   }
@@ -181,14 +213,20 @@ function onPass() {
 
 function onEndGame() {
   if (isBotThinking) return;
+  if (isMpMode && !isMyTurn()) return;
   showConfirm('End the game now and proceed to scoring?', () => {
     board.endGame();
+    if (isMpMode) mp.send({ type: 'end_game' });
     enterScoringPhase();
   });
 }
 
 function onUndo() {
   if (isBotThinking) return;
+  if (isMpMode) {
+    onRequestTakeback();
+    return;
+  }
   if (isBotMode) {
     // Undo both the bot's last move and the human's last move together
     const first = board.undo();
@@ -212,16 +250,19 @@ function onUndo() {
 
 function onResign() {
   if (isBotThinking) return;
+  if (isMpMode && !isMyTurn()) return;
   const opponent = board.currentPlayer === 'black' ? 'White' : 'Black';
   showConfirm(`Resign? ${opponent} wins the game.`, () => {
     const loser = board.currentPlayer;
     board.resign(loser);
     renderer.draw();
+    if (isMpMode) mp.send({ type: 'resign' });
     showResignResult(loser);
   });
 }
 
 function goHome() {
+  if (mp) mp.close();
   if (bot) bot.terminate();
   window.location.href = 'index.html';
 }
@@ -310,6 +351,7 @@ function applyBotPass() {
 
 function showResignResult(resignedPlayer) {
   const winner = resignedPlayer === 'black' ? 'White' : 'Black';
+  gtag('event', 'game_end', { method: 'resign', winner: winner.toLowerCase(), move_count: board.moveNumber });
   enterEndState(`${winner} wins by resignation.`);
 }
 
@@ -347,6 +389,15 @@ function updateScorePreview() {
 }
 
 function onConfirmScore() {
+  if (isMpMode) {
+    mpMyConfirmed = true;
+    mp.send({ type: 'confirm_score' });
+    document.getElementById('confirm-score-btn').disabled = true;
+    document.getElementById('scoring-mp-status').textContent = 'Waiting for opponent to confirm…';
+    document.getElementById('scoring-mp-status').style.display = 'block';
+    if (mpOpponentConfirmed) finalizeMpScore();
+    return;
+  }
   board.finalizeScoring();
   const s = board.calculateScore(komi);
   let result;
@@ -358,7 +409,18 @@ function onConfirmScore() {
   enterScoringEndState(result);
 }
 
+function finalizeMpScore() {
+  board.finalizeScoring();
+  const s = board.calculateScore(komi);
+  const result = s.winner === 'draw'
+    ? 'Draw!'
+    : `${capitalise(s.winner)} wins by ${s.margin} point${s.margin !== 1 ? 's' : ''}!`;
+  enterScoringEndState(result);
+}
+
 function enterScoringEndState(message) {
+  const s = board.calculateScore(komi);
+  gtag('event', 'game_end', { method: 'score', winner: s.winner, move_count: board.moveNumber });
   document.getElementById('scoring-panel').style.display = 'none';
   document.getElementById('stone-dot').style.display     = 'none';
   document.getElementById('ko-indicator').classList.remove('visible');
@@ -385,6 +447,135 @@ function enterEndState(message) {
   document.getElementById('result-new-game-btn').onclick = goHome;
 }
 
+// ─── Takeback ─────────────────────────────────────────────────────────────────
+
+function updateTakebackButton() {
+  if (!isMpMode) return;
+  const btn = document.getElementById('undo-btn');
+  const canRequest = board.phase === 'playing'
+    && board.moveNumber > 0
+    && board.currentPlayer !== myColor  // it's opponent's turn = I just moved
+    && !mpTakebackPending;
+  btn.disabled = !canRequest;
+}
+
+function onRequestTakeback() {
+  if (!isMpMode || board.phase !== 'playing') return;
+  if (board.moveNumber === 0 || board.currentPlayer === myColor) return;
+  if (mpTakebackPending) return;
+  mpTakebackPending = true;
+  updateTakebackButton();
+  mp.send({ type: 'takeback_request' });
+  showStatus('Takeback request sent…');
+}
+
+function onTakebackAccept() {
+  document.getElementById('takeback-banner').style.display = 'none';
+  board.undo();
+  renderer.draw();
+  updateInfoBar();
+  mp.send({ type: 'takeback_accept' });
+}
+
+function onTakebackReject() {
+  document.getElementById('takeback-banner').style.display = 'none';
+  mp.send({ type: 'takeback_reject' });
+}
+
+// ─── Multiplayer message handling ────────────────────────────────────────────
+
+function onMpMessage(msg) {
+  switch (msg.type) {
+
+    case 'move': {
+      // A new move cancels any pending takeback request shown to us
+      document.getElementById('takeback-banner').style.display = 'none';
+      const color  = board.currentPlayer;
+      const result = board.placeStone(msg.x, msg.y);
+      if (!result.ok) { console.error('Opponent move rejected:', result.reason); return; }
+      if (result.captured.length > 0) renderer.startCaptureAnimation(result.captured);
+      renderer.startPlaceAnimation(msg.x, msg.y, color);
+      updateInfoBar();
+      break;
+    }
+
+    case 'pass': {
+      document.getElementById('takeback-banner').style.display = 'none';
+      const playerLabel = capitalise(board.currentPlayer);
+      const result = board.pass();
+      showToast(`${playerLabel} passed`);
+      if (result.gameOver) {
+        enterScoringPhase();
+      } else {
+        renderer.draw();
+        updateInfoBar();
+      }
+      break;
+    }
+
+    case 'resign': {
+      const winner = myColor === 'black' ? 'White' : 'Black';
+      board.resign(myColor === 'black' ? 'white' : 'black');
+      renderer.draw();
+      enterEndState(`${winner} wins by resignation.`);
+      break;
+    }
+
+    case 'end_game': {
+      board.endGame();
+      enterScoringPhase();
+      break;
+    }
+
+    case 'dead_toggle': {
+      board.toggleDeadGroup(msg.x, msg.y);
+      renderer.draw();
+      updateScorePreview();
+      break;
+    }
+
+    case 'confirm_score': {
+      mpOpponentConfirmed = true;
+      if (mpMyConfirmed) {
+        finalizeMpScore();
+      } else {
+        document.getElementById('scoring-mp-status').textContent =
+          'Opponent has confirmed — waiting for you.';
+        document.getElementById('scoring-mp-status').style.display = 'block';
+      }
+      break;
+    }
+
+    case 'takeback_request': {
+      document.getElementById('takeback-banner').style.display = 'flex';
+      break;
+    }
+
+    case 'takeback_accept': {
+      mpTakebackPending = false;
+      board.undo();
+      renderer.draw();
+      updateInfoBar();
+      showToast('Takeback accepted');
+      break;
+    }
+
+    case 'takeback_reject': {
+      mpTakebackPending = false;
+      updateTakebackButton();
+      showToast('Takeback rejected');
+      break;
+    }
+  }
+}
+
+function onMpDisconnect() {
+  document.getElementById('mp-disconnect-banner').style.display = 'flex';
+  document.getElementById('controls').style.display             = 'none';
+  document.getElementById('scoring-panel').style.display        = 'none';
+  document.getElementById('mp-home-btn').addEventListener('click', goHome);
+}
+
 // ─── Info Bar ─────────────────────────────────────────────────────────────────
 
 function updateInfoBar() {
@@ -402,6 +593,7 @@ function updateInfoBar() {
   document.getElementById('move-counter').textContent   = board.moveNumber;
 
   document.getElementById('ko-indicator').classList.toggle('visible', !!board.koPoint);
+  updateTakebackButton();
 }
 
 // ─── Confirm Modal ────────────────────────────────────────────────────────────
