@@ -47,6 +47,7 @@ func main() {
 	}
 
 	fs := http.FileServer(noListFS{http.Dir("static")})
+	http.HandleFunc("/ws", wsHandler)
 	http.Handle("/", securityMiddleware(fs))
 
 	fmt.Printf("\nGo Game is running.\nOpen your browser at: http://localhost:%s\n\n", port)
@@ -70,10 +71,11 @@ func securityMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		w.Header().Set("Content-Security-Policy",
 			"default-src 'self'; "+
-				"script-src 'self'; "+
+				"script-src 'self' https://www.googletagmanager.com; "+
 				"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "+
 				"font-src 'self' https://fonts.gstatic.com; "+
 				"worker-src 'self'; "+
+				"connect-src 'self' https://www.google-analytics.com https://analytics.google.com; "+
 				"object-src 'none'; "+
 				"frame-ancestors 'none'")
 		next.ServeHTTP(w, r)

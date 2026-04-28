@@ -7,7 +7,10 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=13">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YT67WPS65"></script>
+  <script src="js/analytics.js"></script>
 </head>
 <body class="setup-page">
 
@@ -67,7 +70,7 @@
       <div class="mode-buttons" role="tablist" aria-label="Game modes">
         <button class="mode-btn active" data-mode="local">Local Game</button>
         <button class="mode-btn mode-btn--soon" data-mode="online">Play Online</button>
-        <button class="mode-btn mode-btn--soon" data-mode="friend">Play a Friend</button>
+        <button class="mode-btn" data-mode="friend">Play a Friend</button>
         <button class="mode-btn" data-mode="bot">Play a Bot</button>
       </div>
     </section>
@@ -175,6 +178,35 @@
             <input type="checkbox" id="superko-toggle">
             <span class="toggle-slider"></span>
           </label>
+        </div>
+      </div>
+
+      <!-- Friend lobby — shown only in friend mode -->
+      <div id="friend-lobby" style="display:none">
+        <div id="friend-create-state">
+          <div class="option-row">
+            <div class="option-text">
+              <span class="option-heading">Your colour</span>
+              <span class="option-detail">The joiner gets the opposite</span>
+            </div>
+            <div class="seg-control">
+              <button class="seg-btn friend-color-btn" data-friend-color="black">Black</button>
+              <button class="seg-btn friend-color-btn active" data-friend-color="random">Random</button>
+              <button class="seg-btn friend-color-btn" data-friend-color="white">White</button>
+            </div>
+          </div>
+          <button id="create-room-btn" class="start-btn btn-primary" disabled>
+            Select a board size
+          </button>
+        </div>
+        <div id="friend-wait-state" style="display:none">
+          <p class="friend-share-label">Share this link with your friend:</p>
+          <div class="friend-link-row">
+            <input id="friend-link-input" class="friend-link-input" readonly>
+            <button id="friend-copy-btn" class="btn-ghost">Copy</button>
+          </div>
+          <p id="friend-wait-status" class="friend-wait-status">Waiting for opponent to join…</p>
+          <button id="friend-cancel-btn" class="btn-ghost">Cancel</button>
         </div>
       </div>
 
