@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /ws
+
+Sitemap: https://imperial-go.org/sitemap.xml
