@@ -1,9 +1,8 @@
 services:
   - type: web
     name: go-game
-    runtime: go
-    buildCommand: apt-get install -y gnugo && go build -o server .
-    startCommand: ./server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: PORT
         value: 8080
