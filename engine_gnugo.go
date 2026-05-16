@@ -40,6 +40,7 @@ func fromGTPCoord(coord string, size int) (x, y int, pass bool) {
 // gnuGoEngine manages a persistent GnuGo subprocess over GTP.
 type gnuGoEngine struct {
 	mu     sync.Mutex
+	cmd    *exec.Cmd
 	stdin  io.WriteCloser
 	stdout *bufio.Reader
 }
@@ -58,27 +59,32 @@ func gnugoPath() (string, error) {
 	return "", fmt.Errorf("gnugo not found (install with: apt-get install gnugo)")
 }
 
-func newGnuGoEngine() (*gnuGoEngine, error) {
+func startGnuGoProcess() (*exec.Cmd, io.WriteCloser, *bufio.Reader, error) {
 	bin, err := gnugoPath()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	cmd := exec.Command(bin, "--mode", "gtp")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("gnugo start: %w", err)
+		return nil, nil, nil, fmt.Errorf("gnugo start: %w", err)
 	}
-	return &gnuGoEngine{
-		stdin:  stdin,
-		stdout: bufio.NewReader(stdoutPipe),
-	}, nil
+	return cmd, stdin, bufio.NewReader(stdoutPipe), nil
+}
+
+func newGnuGoEngine() (*gnuGoEngine, error) {
+	cmd, stdin, stdout, err := startGnuGoProcess()
+	if err != nil {
+		return nil, err
+	}
+	return &gnuGoEngine{cmd: cmd, stdin: stdin, stdout: stdout}, nil
 }
 
 // send writes one GTP command and reads the response up to the blank-line terminator.
@@ -106,23 +112,49 @@ func (g *gnuGoEngine) send(cmd string) (string, error) {
 	return strings.TrimPrefix(firstLine, "= "), nil
 }
 
-// genMove sets up the full board position from req and asks GnuGo to choose a move.
-func (g *gnuGoEngine) genMove(req botRequest) botResponse {
-	g.mu.Lock()
-	defer g.mu.Unlock()
+// restart kills the dead process and starts a fresh one. Must be called with mu held.
+func (g *gnuGoEngine) restart() error {
+	g.stdin.Close()
+	if g.cmd != nil && g.cmd.Process != nil {
+		g.cmd.Process.Kill()
+		g.cmd.Wait()
+	}
+	cmd, stdin, stdout, err := startGnuGoProcess()
+	if err != nil {
+		return err
+	}
+	g.cmd = cmd
+	g.stdin = stdin
+	g.stdout = stdout
+	log.Println("GnuGo restarted successfully")
+	return nil
+}
 
+// attempt sends the full GTP sequence for req and returns the chosen move.
+// Must be called with mu held.
+func (g *gnuGoEngine) attempt(req botRequest) (botResponse, error) {
 	size := req.Size
-	g.send(fmt.Sprintf("boardsize %d", size))
-	g.send("clear_board")
-	g.send(fmt.Sprintf("komi %.1f", req.Komi))
-	g.send(fmt.Sprintf("level %d", req.Level))
+	if _, err := g.send(fmt.Sprintf("boardsize %d", size)); err != nil {
+		return botResponse{}, err
+	}
+	if _, err := g.send("clear_board"); err != nil {
+		return botResponse{}, err
+	}
+	if _, err := g.send(fmt.Sprintf("komi %.1f", req.Komi)); err != nil {
+		return botResponse{}, err
+	}
+	if _, err := g.send(fmt.Sprintf("level %d", req.Level)); err != nil {
+		return botResponse{}, err
+	}
 
 	if len(req.HandicapStones) > 0 {
 		coords := make([]string, len(req.HandicapStones))
 		for i, s := range req.HandicapStones {
 			coords[i] = toGTPCoord(s.X, s.Y, size)
 		}
-		g.send("set_free_handicap " + strings.Join(coords, " "))
+		if _, err := g.send("set_free_handicap " + strings.Join(coords, " ")); err != nil {
+			return botResponse{}, err
+		}
 	}
 
 	for _, m := range req.Moves {
@@ -133,19 +165,43 @@ func (g *gnuGoEngine) genMove(req botRequest) botResponse {
 			coord = toGTPCoord(m.X, m.Y, size)
 		}
 		if _, err := g.send(fmt.Sprintf("play %s %s", m.Color, coord)); err != nil {
-			log.Printf("gnugo play error: %v", err)
+			return botResponse{}, err
 		}
 	}
 
 	result, err := g.send(fmt.Sprintf("genmove %s", req.Color))
 	if err != nil {
-		log.Printf("gnugo genmove error: %v", err)
-		return botResponse{Pass: true}
+		return botResponse{}, err
 	}
 
 	x, y, pass := fromGTPCoord(result, size)
 	if pass {
+		return botResponse{Pass: true}, nil
+	}
+	return botResponse{X: x, Y: y}, nil
+}
+
+// genMove sets up the full board position from req and asks GnuGo to choose a move.
+// On any communication error it restarts the subprocess and retries once.
+func (g *gnuGoEngine) genMove(req botRequest) botResponse {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	resp, err := g.attempt(req)
+	if err == nil {
+		return resp
+	}
+
+	log.Printf("GnuGo error (%v) — restarting and retrying", err)
+	if rerr := g.restart(); rerr != nil {
+		log.Printf("GnuGo restart failed: %v", rerr)
 		return botResponse{Pass: true}
 	}
-	return botResponse{X: x, Y: y}
+
+	resp, err = g.attempt(req)
+	if err != nil {
+		log.Printf("GnuGo retry after restart failed: %v", err)
+		return botResponse{Pass: true}
+	}
+	return resp
 }
