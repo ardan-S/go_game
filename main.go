@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -64,7 +65,12 @@ func main() {
 
 func securityMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+		ext := filepath.Ext(r.URL.Path)
+		if ext == ".html" || ext == "" {
+			w.Header().Set("Cache-Control", "no-cache")
+		} else {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")

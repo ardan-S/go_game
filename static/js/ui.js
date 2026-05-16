@@ -213,7 +213,6 @@ function onPass() {
 
 function onEndGame() {
   if (isBotThinking) return;
-  if (isMpMode && !isMyTurn()) return;
   showConfirm('End the game now and proceed to scoring?', () => {
     board.endGame();
     if (isMpMode) mp.send({ type: 'end_game' });

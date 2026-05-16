@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Run the local server (then open http://localhost:8080 in a browser)
-go run main.go
+go run .
 
 # Build a binary
-go build -o server main.go
+go build -o server .
 
 # Change the port
-PORT=9000 go run main.go
+PORT=9000 go run .
 ```
 
 No build step for the frontend — all JS/CSS/HTML is served as static files from `static/`.
