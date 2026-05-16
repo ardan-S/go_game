@@ -60,6 +60,15 @@ func initEngines() {
 	}
 }
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	status := map[string]any{
+		"gnugo":  gnugo != nil,
+		"katago": katago != nil,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
 func botMoveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

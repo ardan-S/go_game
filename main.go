@@ -50,6 +50,7 @@ func main() {
 	initEngines()
 
 	fs := http.FileServer(noListFS{http.Dir("static")})
+	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/bot-move", botMoveHandler)
 	http.HandleFunc("/ws", wsHandler)
 	http.Handle("/", securityMiddleware(withCustom404(fs)))
@@ -59,7 +60,7 @@ func main() {
 	srv := &http.Server{
 		Addr:           ":" + port,
 		ReadTimeout:    5 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		WriteTimeout:   60 * time.Second,
 		IdleTimeout:    120 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}

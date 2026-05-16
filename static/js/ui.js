@@ -296,6 +296,7 @@ function triggerBotMove() {
     if (board.phase !== 'playing') return;
 
     if (result.pass) {
+      if (result.error) showToast('Bot unavailable — passed');
       applyBotPass();
       return;
     }

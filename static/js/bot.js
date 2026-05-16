@@ -36,7 +36,7 @@ class Bot {
         this._controller = null;
         if (err.name !== 'AbortError') {
           console.error('Bot request failed:', err);
-          callback({ pass: true });
+          callback({ pass: true, error: err.message });
         }
       });
   }
