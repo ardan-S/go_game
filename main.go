@@ -49,7 +49,7 @@ func main() {
 
 	fs := http.FileServer(noListFS{http.Dir("static")})
 	http.HandleFunc("/ws", wsHandler)
-	http.Handle("/", securityMiddleware(fs))
+	http.Handle("/", securityMiddleware(withCustom404(fs)))
 
 	fmt.Printf("\nGo Game is running.\nOpen your browser at: http://localhost:%s\n\n", port)
 
@@ -63,13 +63,28 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
+func withCustom404(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := filepath.Join("static", filepath.Clean("/"+r.URL.Path))
+		if _, err := os.Stat(p); os.IsNotExist(err) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+			if b, readErr := os.ReadFile("static/404.html"); readErr == nil {
+				w.Write(b)
+			}
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func securityMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ext := filepath.Ext(r.URL.Path)
-		if ext == ".html" || ext == "" {
-			w.Header().Set("Cache-Control", "no-cache")
-		} else {
+		switch filepath.Ext(r.URL.Path) {
+		case ".js", ".css", ".svg", ".png", ".ico", ".woff", ".woff2":
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		default:
+			w.Header().Set("Cache-Control", "no-cache")
 		}
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Content-Type-Options", "nosniff")

@@ -19,6 +19,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="css/style.css?v=13">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#231915">
+  <link rel="preload" href="js/board.js?v=7" as="script">
+  <link rel="preload" href="js/render.js?v=7" as="script">
+  <link rel="preload" href="js/ui.js?v=9" as="script">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YT67WPS65"></script>
   <script src="js/analytics.js"></script>
@@ -114,7 +119,7 @@
 
     <!-- Board -->
     <div class="board-container">
-      <canvas id="board-canvas"></canvas>
+      <canvas id="board-canvas" role="img" aria-label="Go board"></canvas>
       <div id="board-result" class="board-result" style="display:none">
         <div class="board-result-card">
           <p id="board-result-message" class="result-message"></p>
