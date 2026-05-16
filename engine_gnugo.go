@@ -50,8 +50,10 @@ func gnugoPath() (string, error) {
 	if p, err := exec.LookPath("gnugo"); err == nil {
 		return p, nil
 	}
-	if _, err := os.Stat("/usr/games/gnugo"); err == nil {
-		return "/usr/games/gnugo", nil
+	for _, p := range []string{"./gnugo", "/usr/games/gnugo"} {
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
+		}
 	}
 	return "", fmt.Errorf("gnugo not found (install with: apt-get install gnugo)")
 }

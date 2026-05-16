@@ -5,7 +5,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o server .
 
-FROM ubuntu:22.04
+FROM debian:bullseye-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gnugo ca-certificates && \
     rm -rf /var/lib/apt/lists/*
