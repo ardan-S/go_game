@@ -27,6 +27,12 @@ class Board {
     // Superko — serialized situations seen so far (full board + player to move).
     this.boardStateHistory = [];
 
+    // Move log for server-side engine replay. Each entry is either
+    // { color, x, y, pass: false } or { color, pass: true }.
+    this.moves = [];
+    // Pre-placed stones for handicap games, sent to the engine separately.
+    this.handicapStones = [];
+
     const handicap = Math.max(0, parseInt(options.handicap) || 0);
     if (handicap >= 2) {
       this._placeHandicapStones(handicap);
@@ -148,6 +154,8 @@ class Board {
     if (this.phase !== 'playing') return { ok: false, reason: 'Cannot undo after the game ends' };
     if (this.history.length === 0) return { ok: false, reason: 'Nothing to undo' };
 
+    if (this.moves.length > 0) this.moves.pop();
+
     const prev = this.history.pop();
     this.grid                 = prev.grid;
     this.currentPlayer        = prev.currentPlayer;
@@ -220,6 +228,7 @@ class Board {
     this.moveNumber++;
     this.currentPlayer    = opp;
     this.boardStateHistory.push(this._serializeSituation(this.grid, this.currentPlayer));
+    this.moves.push({ color, x, y, pass: false });
 
     return { ok: true, captured: capturedStones };
   }
@@ -227,11 +236,14 @@ class Board {
   pass() {
     if (this.phase !== 'playing') return { ok: false, reason: 'Not in playing phase' };
 
+    const passingColor = this.currentPlayer;
     this._saveHistory();
     this.consecutivePasses++;
     this.koPoint  = null;
     this.lastMove = null;
     this.moveNumber++;
+
+    this.moves.push({ color: passingColor, pass: true });
 
     if (this.consecutivePasses >= 2) {
       this.phase = 'scoring';
@@ -263,6 +275,7 @@ class Board {
     for (let i = 0; i < n; i++) {
       const [x, y] = positions[i];
       this.grid[y][x] = 'black';
+      this.handicapStones.push({ x, y });
     }
   }
 

@@ -47,7 +47,10 @@ func main() {
 		}
 	}
 
+	initEngines()
+
 	fs := http.FileServer(noListFS{http.Dir("static")})
+	http.HandleFunc("/bot-move", botMoveHandler)
 	http.HandleFunc("/ws", wsHandler)
 	http.Handle("/", securityMiddleware(withCustom404(fs)))
 

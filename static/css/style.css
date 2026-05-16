@@ -837,44 +837,6 @@ button:active {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Bot countdown ring ─────────────────────────────────────────────────────── */
-.bot-timer {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.bot-timer-svg {
-  width: 26px;
-  height: 26px;
-  transform: rotate(-90deg); /* start arc at 12 o'clock */
-  overflow: visible;
-}
-
-.bot-timer-track {
-  fill: none;
-  stroke: rgba(111, 85, 57, 0.18);
-  stroke-width: 3.5;
-}
-
-/* circumference of r=14 circle ≈ 87.96 */
-.bot-timer-arc {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3.5;
-  stroke-linecap: round;
-  stroke-dasharray: 87.96 0;
-}
-
-.bot-timer-arc.running {
-  animation: bot-timer-drain linear forwards;
-}
-
-@keyframes bot-timer-drain {
-  from { stroke-dasharray: 87.96 0; }
-  to   { stroke-dasharray: 0 87.96; }
-}
-
 .bot-thinking {
   display: flex;
   align-items: center;
@@ -1012,21 +974,9 @@ button:active {
 }
 
 .diff-labels span {
-  flex: 1;
   font-size: 0.76rem;
   color: var(--text-muted);
   font-weight: 500;
-  text-align: center;
-}
-
-.diff-labels span:first-child { text-align: left; }
-.diff-labels span:last-child  { text-align: right; }
-
-.diff-think-note {
-  margin: 12px 0 0;
-  font-size: 0.78rem;
-  color: var(--text-soft);
-  text-align: center;
 }
 
 .btn-danger {

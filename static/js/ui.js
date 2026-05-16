@@ -37,7 +37,7 @@ function getParams() {
     superko:    p.get('superko') === '1',
     handicap:   (!isNaN(rawHandicap) && rawHandicap >= 0) ? rawHandicap : 0,
     bot:        p.get('bot') === '1',
-    difficulty: Math.min(5, Math.max(1, !isNaN(rawDifficulty) ? rawDifficulty : 3)),
+    difficulty: Math.min(10, Math.max(1, !isNaN(rawDifficulty) ? rawDifficulty : 5)),
     color:      ['black', 'white', 'random'].includes(rawColor) ? rawColor : 'random',
     mp:         p.get('mp') === '1',
     room:       p.get('room') || null,
@@ -268,21 +268,6 @@ function goHome() {
 
 // ─── Bot ──────────────────────────────────────────────────────────────────────
 
-function startBotTimer(durationMs) {
-  const arc = document.getElementById('bot-timer-arc');
-  arc.classList.remove('running');
-  window.getComputedStyle(arc).animationName; // force reflow to restart animation
-  arc.style.animationDuration = durationMs + 'ms';
-  arc.classList.add('running');
-  document.getElementById('bot-timer').style.display = 'flex';
-}
-
-function stopBotTimer() {
-  const arc = document.getElementById('bot-timer-arc');
-  arc.classList.remove('running');
-  document.getElementById('bot-timer').style.display = 'none';
-}
-
 function triggerBotMove() {
   isBotThinking = true;
   const canvas  = document.getElementById('board-canvas');
@@ -291,27 +276,23 @@ function triggerBotMove() {
   document.getElementById('controls').style.display      = 'none';
   document.getElementById('bot-thinking').style.display  = 'flex';
   document.getElementById('bot-thinking-text').textContent =
-    `${capitalise(botColor)} is thinking\u2026`;
-
-  const level    = Math.min(5, Math.max(1, parseInt(botDifficulty) || 3));
-  const budgetMs = [0, 300, 600, 1500, 4000, 8000][level] || 1500;
-  startBotTimer(budgetMs);
+    `${capitalise(botColor)} is thinking…`;
 
   const boardState = {
-    grid:          board.grid,
-    size:          board.size,
-    currentPlayer: board.currentPlayer,
-    koPoint:       board.koPoint,
+    size:           board.size,
+    currentPlayer:  board.currentPlayer,
+    handicapStones: board.handicapStones,
+    moves:          board.moves,
+    komi:           komi,
   };
 
   bot.requestMove(boardState, botDifficulty, (result) => {
     isBotThinking = false;
-    stopBotTimer();
     canvas.style.pointerEvents = '';
     document.getElementById('bot-thinking').style.display = 'none';
     document.getElementById('controls').style.display     = 'flex';
 
-    // Game may have ended while the worker was computing (e.g. user resigned)
+    // Game may have ended while the server was computing (e.g. user resigned)
     if (board.phase !== 'playing') return;
 
     if (result.pass) {
@@ -319,11 +300,10 @@ function triggerBotMove() {
       return;
     }
 
-    const color     = board.currentPlayer;
+    const color      = board.currentPlayer;
     const moveResult = board.placeStone(result.x, result.y);
 
     if (!moveResult.ok) {
-      // Bot returned an illegal move — fall back to pass
       console.warn('Bot returned illegal move, falling back to pass:', result, moveResult.reason);
       applyBotPass();
       return;

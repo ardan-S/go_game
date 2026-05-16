@@ -2,7 +2,7 @@
 
 let selectedSize       = null;
 let selectedMode       = 'local';
-let selectedDifficulty = 3;
+let selectedDifficulty = 5;
 let selectedColor      = 'random';
 
 function selectSize(size) {
@@ -43,8 +43,6 @@ function selectColor(color) {
 
 function onDifficultySlider(val) {
   selectedDifficulty = parseInt(val, 10);
-  document.getElementById('diff-think-note').style.display =
-    selectedDifficulty >= 4 ? 'block' : 'none';
   updateStartButton();
 }
 
@@ -86,8 +84,6 @@ function updateModeView() {
     colorOptionRow.style.display     = '';
     colorOptionDivider.style.display = '';
     diffRow.style.display            = 'block';
-    document.getElementById('diff-think-note').style.display =
-      selectedDifficulty >= 4 ? 'block' : 'none';
     // Hide handicap — bot always plays standard game
     handicapRow.style.display    = 'none';
     handicapDetail.style.display = 'none';

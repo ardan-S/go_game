@@ -2,7 +2,7 @@ services:
   - type: web
     name: go-game
     runtime: go
-    buildCommand: go build -o server main.go
+    buildCommand: apt-get install -y gnugo && go build -o server .
     startCommand: ./server
     envVars:
       - key: PORT

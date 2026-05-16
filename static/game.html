@@ -18,12 +18,12 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=14">
+  <link rel="stylesheet" href="css/style.css?v=15">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#231915">
-  <link rel="preload" href="js/board.js?v=7" as="script">
+  <link rel="preload" href="js/board.js?v=8" as="script">
   <link rel="preload" href="js/render.js?v=7" as="script">
-  <link rel="preload" href="js/ui.js?v=9" as="script">
+  <link rel="preload" href="js/ui.js?v=10" as="script">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7YT67WPS65"></script>
   <script src="js/analytics.js"></script>
@@ -73,13 +73,6 @@
     <div class="turn-block">
       <span id="stone-dot" class="stone-dot black"></span>
       <span id="turn-indicator" class="turn-indicator">Black's turn</span>
-    </div>
-    <!-- Countdown ring — shown only while bot is computing -->
-    <div id="bot-timer" class="bot-timer" style="display:none">
-      <svg class="bot-timer-svg" viewBox="0 0 36 36">
-        <circle class="bot-timer-track" cx="18" cy="18" r="14"/>
-        <circle id="bot-timer-arc"  class="bot-timer-arc"  cx="18" cy="18" r="14"/>
-      </svg>
     </div>
     <span id="ko-indicator" class="ko-indicator">Ko</span>
     <div class="captures">
@@ -182,10 +175,10 @@
     </div>
   </section>
 
-  <script src="js/board.js?v=7"></script>
+  <script src="js/board.js?v=8"></script>
   <script src="js/render.js?v=7"></script>
-  <script src="js/bot.js?v=1"></script>
+  <script src="js/bot.js?v=2"></script>
   <script src="js/multiplayer.js?v=1"></script>
-  <script src="js/ui.js?v=9"></script>
+  <script src="js/ui.js?v=10"></script>
 </body>
 </html>
