@@ -53,6 +53,7 @@ func main() {
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/bot-move", botMoveHandler)
 	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/robots.txt", robotsHandler)
 	http.Handle("/", securityMiddleware(withCustom404(fs)))
 
 	fmt.Printf("\nGo Game is running.\nOpen your browser at: http://localhost:%s\n\n", port)
@@ -105,4 +106,10 @@ func securityMiddleware(next http.Handler) http.Handler {
 				"frame-ancestors 'none'")
 		next.ServeHTTP(w, r)
 	})
+}
+
+func robotsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	fmt.Fprint(w, "User-agent: *\nAllow: /\nDisallow: /ws\n\nSitemap: https://www.imperial-go.org/sitemap.xml\n")
 }
