@@ -101,7 +101,7 @@ function updateModeView() {
     setupConfig.style.display = 'none';
     modeMessage.style.display = 'block';
     descText.textContent = 'Play against a stranger online.';
-    msgText.textContent  = 'Sorry, not implemented yet.';
+    msgText.textContent  = 'Imperial Go is still growing — online matchmaking will open once we have enough players for fair, fast matches.';
   } else {
     setupConfig.style.display = 'none';
     modeMessage.style.display = 'block';
