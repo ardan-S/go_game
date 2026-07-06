@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /ws
+Disallow: /bot-move
+Disallow: /health
 
-Sitemap: https://imperial-go.org/sitemap.xml
+Sitemap: https://www.imperial-go.org/sitemap.xml

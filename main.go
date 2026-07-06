@@ -111,5 +111,5 @@ func securityMiddleware(next http.Handler) http.Handler {
 func robotsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	fmt.Fprint(w, "User-agent: *\nAllow: /\nDisallow: /ws\n\nSitemap: https://www.imperial-go.org/sitemap.xml\n")
+	fmt.Fprint(w, "User-agent: *\nAllow: /\nDisallow: /ws\nDisallow: /bot-move\nDisallow: /health\n\nSitemap: https://www.imperial-go.org/sitemap.xml\n")
 }
